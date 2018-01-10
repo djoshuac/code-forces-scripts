@@ -108,7 +108,7 @@ class ProblemHTMLParser(html.parser.HTMLParser):
         return examples
 
 
-def download_problem(contest_uri, problem):
+def download_problem(contest_dir, contest_uri, problem):
     problem_uri = contest_uri + '/problem/' + problem
     print('Retrieving', problem_uri, '...')
     sys.stdout.flush()
@@ -129,44 +129,48 @@ def download_problem(contest_uri, problem):
 
     examples = parser.getExamples()
 
-    problem_dir = problem.lower()
+    problem_dir = os.path.join(contest_dir, problem.lower())
+    tests_dir = os.path.join(problem_dir, "tests")
+    input_dir = os.path.join(tests_dir, "input")
+    output_dir = os.path.join(tests_dir, "output")
     if not os.path.isdir(problem_dir):
         os.mkdir(problem_dir)
+        os.mkdir(tests_dir)
+        os.mkdir(input_dir)
+        os.mkdir(output_dir)
 
     for i, example in enumerate(examples, 1):
-        input_path = os.path.join(problem_dir, 'in{}'.format(i))
+        input_path = os.path.join(input_dir, 'input{:02}.txt'.format(i))
         with open(input_path, 'w') as f:
             f.write(example[0])
 
-        output_path = os.path.join(problem_dir, 'out{}'.format(i))
+        output_path = os.path.join(output_dir, 'output{:02}.txt'.format(i))
         with open(output_path, 'w') as f:
             f.write(example[1])
 
     print('Wrote {} examples for problem {}.'.format(len(examples), problem))
 
-
-parser = argparse.ArgumentParser(description='Codeforces scraper.  https://github.com/lovrop/codeforces-scraper')
-parser.add_argument('contest', help='URI or numerical ID of contest to scrape')
-args = parser.parse_args()
-
-# See if it was just a numeric ID
-try:
-    contest_id = int(args.contest)
+def create_contest_folder(contest_id):
+    os.mkdir(contest_id)
     contest_uri = 'http://codeforces.com/contest/{}'.format(contest_id)
-except ValueError:
-    contest_uri = args.contest
+    print('Retrieving ', contest_uri, '... ', sep='', end='')
+    sys.stdout.flush()
+    contest_html = urllib.request.urlopen(contest_uri).read().decode('utf-8')
+    print('OK ({} bytes).'.format(len(contest_html)))
 
-print('Retrieving ', contest_uri, '... ', sep='', end='')
-sys.stdout.flush()
-contest_html = urllib.request.urlopen(contest_uri).read().decode('utf-8')
-print('OK ({} bytes).'.format(len(contest_html)))
+    parser = ContestHTMLParser()
+    parser.feed(contest_html)
+    problems = parser.getProblems()
 
-parser = ContestHTMLParser()
-parser.feed(contest_html)
-problems = parser.getProblems()
+    print('Found', len(problems), 'problems.')
 
-print('Found', len(problems), 'problems.')
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        for problem in problems:
+            executor.submit(download_problem, contest_id, contest_uri, problem)
 
-with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-    for problem in problems:
-        executor.submit(download_problem, contest_uri, problem)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Codeforces scraper.')
+    parser.add_argument('contest_id', help='Numerical ID of contest to scrape')
+    args = parser.parse_args()
+    contest_id = args.contest_id
+    create_contest_folder(contest_id)
