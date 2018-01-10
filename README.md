@@ -1,8 +1,8 @@
 **solution_validator.py**
 
-Executes the given python solutions on "tests/input/\*" and
-compares with the respective "tests/output/\*". Time limit
-of 2 is default.
+Executes the given python solutions on `tests/input/\*` and
+compares with the respective `tests/output/\*`. Time limit
+of 2.
 
 **download_test_cases.py**
 
