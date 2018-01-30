@@ -20,18 +20,20 @@ def execute_script_test(solution, testin, testout, timeout):
     try:
         if ext == "py":
             proc = subprocess.Popen(["python", solution], stdin=testin, stdout=testout)
-            proc.communicate(timeout=2)
+            proc.communicate(timeout=timeout)
             proc.wait()
             if proc.returncode != 0:
                 print("----Error: Return code='{}'".format(proc.returncode))
+                return False
         elif ext == "cpp":
             subprocess.Popen(["g++", "-std=c++11", solution]).communicate()
             proc = subprocess.Popen(["./a.out"], stdin=testin, stdout=testout)
+            proc.communicate(timeout=timeout)
             proc.wait()
+            subprocess.Popen(["rm", "a.out"]).communicate()
             if proc.returncode != 0:
                 print("----Error: Return code='{}'".format(proc.returncode))
-            proc.communicate(timeout=2)
-            subprocess.Popen(["rm", "a.out"]).communicate()
+                return False
         else:
             proc = subprocess.Popen(["cat", "unrecognized solution: '.{}'".format(ext)])
             proc.communicate()
@@ -43,18 +45,20 @@ def execute_script_test(solution, testin, testout, timeout):
         return False
 
 
-def validate_solution(solution):
+def validate_solution(solution, timeout):
     tempfile = "__tmp__.txt"
     for fin, fout in get_test_files():
         with open(fin) as testin, open(tempfile, "w") as tmp:
             print("Running test {}".format(fout[-6:-4]))
-            if execute_script_test(solution, testin, tmp, 2):
+            if execute_script_test(solution, testin, tmp, timeout):
                 subprocess.Popen(["diff", fout, tempfile]).communicate()
     os.remove(tempfile)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Script validator.')
     parser.add_argument('scriptfile', help='Name of script file to test')
+    parser.add_argument('-timeout', "-t", help='Time limit for solutions', default=2)
     args = parser.parse_args()
     scriptfile = args.scriptfile
-    validate_solution(scriptfile)
+    timeout = float(args.timeout)
+    validate_solution(scriptfile, timeout)
