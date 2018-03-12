@@ -19,7 +19,7 @@ def execute_script_test(solution, testin, testout, timeout):
     ext = solution.split(".")[-1]
     try:
         if ext == "py":
-            proc = subprocess.Popen(["python", solution], stdin=testin, stdout=testout)
+            proc = subprocess.Popen(["python3", solution], stdin=testin, stdout=testout)
             proc.communicate(timeout=timeout)
             proc.wait()
             if proc.returncode != 0:
