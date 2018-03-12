@@ -8,7 +8,7 @@ def generate_test_case_output(solution, timeout, inputfile, outputfile):
     ext = solution.split(".")[-1]
     print("Running {} on {}".format(solution, inputfilename))
     if ext == "py":
-        proc = subprocess.Popen(["python", solution], stdin=inputfile, stdout=outputfile)
+        proc = subprocess.Popen(["python3", solution], stdin=inputfile, stdout=outputfile)
         proc.communicate(timeout=timeout)
         proc.wait()
         if proc.returncode != 0:
